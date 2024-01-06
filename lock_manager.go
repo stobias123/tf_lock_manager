@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	log "github.com/sirupsen/logrus"
 )
 
 type LockManager struct {
@@ -32,6 +33,7 @@ func (lm *LockManager) Unlock(pattern string) error {
 	scanInput := &dynamodb.ScanInput{
 		TableName: aws.String(lm.config.TableName),
 	}
+	log.Infof("Scanning table %s\n", lm.config.TableName)
 
 	scanResult, err := lm.dbClient.Scan(context.TODO(), scanInput)
 	if err != nil {
@@ -52,7 +54,7 @@ func (lm *LockManager) Unlock(pattern string) error {
 			return fmt.Errorf("failed to unmarshal DynamoDB item: %w", err)
 		}
 
-		lockID, ok := lockItem["ID"].(string)
+		lockID, ok := lockItem["LockID"].(string)
 		if !ok {
 			continue // skip if ID is not a string
 		}
@@ -62,7 +64,7 @@ func (lm *LockManager) Unlock(pattern string) error {
 			_, err = lm.dbClient.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
 				TableName: aws.String(lm.config.TableName),
 				Key: map[string]types.AttributeValue{
-					"ID": &types.AttributeValueMemberS{Value: lockID},
+					"LockID": &types.AttributeValueMemberS{Value: lockID},
 				},
 			})
 
@@ -70,7 +72,7 @@ func (lm *LockManager) Unlock(pattern string) error {
 				return fmt.Errorf("failed to delete item with ID %s: %w", lockID, err)
 			}
 
-			fmt.Printf("Deleted lock with ID: %s\n", lockID)
+			log.Infof("Deleted lock with ID: %s\n", lockID)
 		}
 	}
 

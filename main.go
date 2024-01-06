@@ -27,6 +27,7 @@ func main() {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			pattern := args[0]
+			log.Infof("Unlocking locks matching pattern: %s", pattern)
 			lm, err := NewLockManager(config)
 			if err != nil {
 				log.Fatalf("Error creating LockManager: %v", err)
